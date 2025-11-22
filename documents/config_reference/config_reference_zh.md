@@ -4,7 +4,7 @@
 
 ---
 
-## 📁 场景输出设置 (Scene Output Settings)
+## 📁 数据集输出路径设置 (Dataset Result Output Settings)
 
 
 ```yaml
