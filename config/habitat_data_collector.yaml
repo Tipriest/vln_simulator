@@ -2,7 +2,8 @@ defaults:
   - _self_
 
 # ==========================================
-# Path Configuration (Adaptive / 自适应路径配置  !!! 此处请勿进行更改 !!!)
+# !!! 此处请勿进行更改 !!!
+# Path Configuration (Adaptive / 自适应路径配置)
 # ==========================================
 # Automatically get user home directory / 自动获取用户主目录
 user_home: ${oc.env:HOME}
@@ -17,7 +18,7 @@ project_root: ${user_home}/Documents/vln_simulator
 
 
 
-# Scene Output Settings
+# 使用哪一个仿真数据集的哪一个仿真场景
 dataset_name: hm3d
 output_path: ${project_root}/output
 scene_name: 00829-QaLdnwvtxbs
