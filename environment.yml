@@ -1,4 +1,4 @@
-name: habitat_data_collector
+name: vln_simulator
 channels:
   - pytorch
   - nvidia

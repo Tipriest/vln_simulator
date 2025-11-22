@@ -1,176 +1,147 @@
-<div align="center">
-  <img src="documents/images/logo.png" alt="Habitat Data Collector Logo" width="30%"/>
-</div>
+# README.md
 
-<h1 align="center">Habitat Data Collector</h1>
+## 一. 项目作用
+用于作为一个简单的仿真器平台
+- 加载环境
+  - 加载指定的几个数据集的某几个室内环境
+  - 加载室内环境带有可能随机出生的物体
+---
 
-<div align="center">
-
-🚀 A modular tool for dataset collection in Habitat-Sim environments.  
-📦 Part of the <a href="https://eku127.github.io/DualMap/">DualMap</a> project.
-
-</div>
-
-
-## ✨ Features
-
-- ✅ Customize dynamic scenes and object layouts  
-- 📡 Stream ROS2 data (pose, RGB-D)  
-- 💾 Record and evaluate data for perception/navigation tasks
-
-
-
-## 📚 Table of Contents
-
-- [✨ Features](#-features)
-- [📚 Table of Contents](#-table-of-contents)
-- [📦 Environment Setup](#-environment-setup)
-  - [1. Clone the repository with submodules](#1-clone-the-repository-with-submodules)
-  - [2. Create the Conda environment](#2-create-the-conda-environment)
-  - [3. Build and install Habitat Sim \& Lab](#3-build-and-install-habitat-sim--lab)
-- [📦 Dataset Setup](#-dataset-setup)
-- [⚙️ Configuration Guide](#️-configuration-guide)
-- [🚀 Run the Collector](#-run-the-collector)
-  - [ROS2 Integration (Optional)](#ros2-integration-optional)
-- [📘 User Guide](#-user-guide)
-- [📁 Project Structure](#-project-structure)
-- [⚠️ Notes](#️-notes)
-- [🔗 Citation](#-citation)
-- [🙏 Acknowledgment](#-acknowledgment)
-- [📜 License](#-license)
+- ROS2消息发送/接收/录制ROS bag:
+  - 消息发送:
+    - 机器人于房间的位姿Pose
+    - 机器人此时的RGBD信息
+    - 机器人此时的RGB图像对应的所有物体的检测框和实例分割图像
+  - 消息接收:
+    - 接收ROS2的控制指令，视角进行移动
+  - 录制ROS bag
+    - 录制对应的ROS2 bag用于建图等方面的测试
+---
 
 
 
-## 📦 Environment Setup
+## 二. 环境安装
 
-> 🖥️ This setup is tested on **Ubuntu 22.04** with **Python 3.10**.
+> 此设置已在 **Ubuntu 22.04** 和 **Python 3.10** 上通过测试。
 
-### 1. Clone the repository with submodules
+#### 2.1 克隆带有子模块的仓库
 
 ```bash
-git clone --recurse-submodules https://github.com/Eku127/habitat-data-collector.git
-cd habitat-data-collector
+
+# 强烈建议将项目放置在Documents路径下
+cd ~/Documents
+git clone --recurse-submodules git@github.com:Tipriest/vln_simulator.git
+cd vln_simulator
 ```
 
-### 2. Create the Conda environment
+#### 2.2 创建 Conda 环境
 
 ```bash
 conda env create -f environment.yml
-conda activate habitat_data_collector
+conda activate vln_simulator
 ```
 
-### 3. Build and install Habitat Sim & Lab
+#### 3. 编译并安装 Habitat Sim & Lab
 
-> This step will take some time as it compiles Habitat-Sim from source.
-> Habitat cannot be installed by conda in Python 3.10, so it must be built manually.
+> 此步骤需要一些时间，因为它会从源码编译 Habitat-Sim。
+> Habitat 无法通过 conda 在 Python 3.10 中直接安装，因此必须手动编译。
 
 ```bash
 bash scripts/install_habitat.sh
 ```
 
-> During compiling with habitat-sim, if having error with OgenGL, like `Could NOT find OpenGL` and errors with compiling `zlib_external`, install the required libs by:
->```bash
-> sudo apt install libgl1-mesa-dev libglu1-mesa-dev freeglut3-dev zlib1g-dev
-> sudo apt-get install -y ros-humble-rmw-cyclonedds-cpp 
->```
+> 在编译 habitat-sim 过程中，如果遇到 OpenGL 错误（如 `Could NOT find OpenGL`）或编译 `zlib_external` 时出错，请安装以下依赖库：
+```bash
+ sudo apt install libgl1-mesa-dev libglu1-mesa-dev freeglut3-dev zlib1g-dev
+ sudo apt-get install -y ros-humble-rmw-cyclonedds-cpp 
+```
+
+## 📦 数据集设置
+
+在运行工具之前，请按照 [数据集设置指南](documents/dataset/dataset_netdisk.md) 准备所需的数据集。
 
 
-## 📦 Dataset Setup
+## ⚙️ 配置指南
 
-Before running the tool, please follow the [dataset setup guide](documents/dataset/dataset.md) to prepare the required datasets.
-
-
-## ⚙️ Configuration Guide
-
-For a detailed explanation of configuration options and structure, please refer to the [Configuration Reference](documents/config_reference/config_reference.md). Setting up correct configs is crucial for running this tool.
+有关配置选项和结构的详细说明，请参阅 [配置参考](documents/config_reference/config_reference.md)。正确设置配置对于运行此工具至关重要。
 
 
-## 🚀 Run the Collector
+## 🚀 运行采集器
 
-Run the main simulation from the root directory:
+从根目录运行主仿真程序：
 
 ```bash
 python -m habitat_data_collector.main
 ```
 
-By default, it uses the configuration file at: `config/habitat_data_collector.yaml`. For config details, refer to the [Config Reference](documents/config_reference/config_reference.md).
+默认情况下，它使用位于 `config/habitat_data_collector.yaml` 的配置文件。有关配置详情，请参阅 [配置参考](documents/config_reference/config_reference.md)。
 
-### ROS2 Integration (Optional)
+### ROS2 集成（可选）
 
-If you want to receive and send ROS2 topic outputs or record ROS2 bags:
+如果您希望接收和发送 ROS2 话题输出或录制 ROS2 bag：
 
-1. Install **ROS2 Humble** following the [official guide](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debians.html).
-2. Source the ROS2 environment before running the collector:
+1. 按照 [官方指南](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debians.html) 安装 **ROS2 Humble**。
+2. 在运行采集器之前 source ROS2 环境：
 
 ```bash
-source /opt/ros/humble/setup.bash  # or setup.zsh
+source /opt/ros/humble/setup.bash  # 或者 setup.zsh
 ```
 
-Once sourced, the simulator will publish data to ROS2 topics. You can record them by enabling the ROS recording configuration in `config/habitat_data_collector.yaml`. See the [ROS Integration Documentation](documents/ros.md) for topic configuration and ROS2-to-ROS1 bridge setup.
+source 之后，仿真器将向 ROS2 话题发布数据。您可以通过在 `config/habitat_data_collector.yaml` 中启用 ROS 录制配置来录制这些数据。有关话题配置和 ROS2-to-ROS1 桥接设置，请参阅 [ROS 集成文档](documents/ros.md)。
 
 
-## 📘 User Guide
+## 📘 用户指南
 
-**Once the simulator launches successfully, refer to the [Usage Guide](documents/usage/usage.md) to learn how to**:
+**仿真器成功启动后，请参阅 [使用指南](documents/usage/usage.md) 了解如何**：
 
-- Move the camera and explore the scene
-- Add, place, grab, and delete objects
-- Start and stop recording (raw data + ROS2 bag)
-- Save and reload a scene configuration
+- 移动相机并探索场景
+- 添加、放置、抓取和删除物体
+- 开始和停止录制（原始数据 + ROS2 bag）
+- 保存并重新加载场景配置
 
-The guide includes visual previews and terminal output samples for better understanding.
+该指南包含视觉预览和终端输出示例，以便更好地理解。
 
 
-## 📁 Project Structure
+## 📁 项目结构
+
 
 ```
 habitat-data-collector/
-├── habitat_data_collector/   # Main application code
+├── habitat_data_collector/   # 主应用程序代码
 │   ├── main.py
 │   └── utils/
-├── config/                   # YAML configuration files
-├── 3rdparty/                 # Git submodules: habitat-sim & habitat-lab
-├── documents/               # Markdown documentation and media
-├── scripts/                 # Helper scripts (e.g. build, setup)
-├── environment.yml          # Conda environment spec
+├── config/                   # YAML 配置文件
+├── 3rdparty/                 # Git 子模块: habitat-sim & habitat-lab
+├── documents/               # Markdown 文档和媒体文件
+├── scripts/                 # 辅助脚本 (例如 build, setup)
+├── environment.yml          # Conda 环境规范
 └── README.md
 ```
 
+## ⚠️ 注意事项
+使用 ROS 功能前必须安装并 `source ROS2 Humble`。
+配置通过 `OmegaConf` 和 `Hydra` 处理。
+所有路径、话题和行为均在 `habitat_data_collector.yaml` 中配置。
 
-## ⚠️ Notes
 
-- ROS2 Humble must be installed and sourced before using ROS features.
-- Configurations are handled with [OmegaConf](https://omegaconf.readthedocs.io/) and [Hydra](https://hydra.cc/).
-- All paths, topics, and behaviors are configured in `config/habitat_data_collector.yaml`.
-
-## 🔗 Citation
-
-If you find our work helpful, please consider starring this repo 🌟 and cite:
-
-```bibtex
+## 🔗 引用
+如果您觉得我们的工作有帮助，请考虑给这个仓库点个星 🌟 并引用：
+```
 @article{jiang2025dualmap,
   title={DualMap: Online Open-Vocabulary Semantic Mapping for Natural Language Navigation in Dynamic Changing Scenes},
   author={Jiang, Jiajun and Zhu, Yiming and Wu, Zirui and Song, Jie},
   journal={arXiv preprint arXiv:2506.01950},
   year={2025}
 }
-``` 
+```
 
-## 🙏 Acknowledgment
+## 🙏 致谢
+本项目建立在以下杰出工作的基础之上：
+- Habitat-Sim
+- Habitat-Lab
+感谢这些项目的作者和贡献者将其开源并积极维护。
 
-This project builds on the outstanding work of:
+本项目还受到 VLMaps 数据采集流程的启发，我们感谢 HOVSG 和 VLMaps 的作者所做的贡献。
 
-- [Habitat-Sim](https://github.com/facebookresearch/habitat-sim) 
-- [Habitat-Lab](https://github.com/facebookresearch/habitat-lab) 
-
-We thank the authors and contributors of these projects for making them open-source and actively maintained.
-
-
-This project is also inspired by the data collection pipeline from [VLMaps](https://github.com/vlmaps/vlmaps), and we are grateful to the authors of both [HOVSG](https://github.com/hovsg/HOV-SG) and [VLMaps](https://github.com/vlmaps/vlmaps) for their contributions.
-
-Special thanks to @[TOM-Huang](https://github.com/Tom-Huang) and @[aclegg3](https://github.com/aclegg3) for valuable advice and support during development.
-
-## 📜 License
-
-MIT License
+特别感谢 @TOM-Huang 和 @aclegg3 在开发过程中提供的宝贵建议和支持。
 

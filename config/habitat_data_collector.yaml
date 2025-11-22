@@ -1,9 +1,25 @@
 defaults:
   - _self_
 
+# ==========================================
+# Path Configuration (Adaptive / 自适应路径配置  !!! 此处请勿进行更改 !!!)
+# ==========================================
+# Automatically get user home directory / 自动获取用户主目录
+user_home: ${oc.env:HOME}
+
+# Define dataset root directory / 定义数据集根目录
+# You can override this via command line: dataset_root=/path/to/datasets
+dataset_root: ${user_home}/dataset
+
+# Define project root for outputs / 定义项目根目录用于输出
+project_root: ${user_home}/Documents/vln_simulator
+
+
+
+
 # Scene Output Settings
 dataset_name: hm3d
-output_path: /home/tipriest/Documents/habitat-data-collector/output
+output_path: ${project_root}/output
 scene_name: 00829-QaLdnwvtxbs
 
 # Habitat Setting
@@ -14,23 +30,22 @@ default_agent: 0
 # load from scene config
 # if load from scene config, then we no need define scene path in the following
 load_from_config: false
-scene_config: /home/eku/workspace/dataset/HM3D_collect/00829-QaLdnwvtxbs/dynamic_scene_config/0117.json
+scene_config: ${dataset_root}/HM3D_collect/${scene_name}/dynamic_scene_config/0117.json
 
 # HM3D
-scene_path: /home/tipriest/dataset/hm3d/val/00829-QaLdnwvtxbs/QaLdnwvtxbs.basis.glb
-scene_dataset_config: /home/tipriest/dataset/hm3d/val/hm3d_annotated_basis.scene_dataset_config.json
+scene_path: ${dataset_root}/hm3d/val/00829-QaLdnwvtxbs/QaLdnwvtxbs.basis.glb
+scene_dataset_config: ${dataset_root}/hm3d/val/hm3d_annotated_basis.scene_dataset_config.json
 
 # MP3D
-# scene_path: /home/eku/workspace/habitat-sim/data/mp3d_example/17DRP5sb8fy/17DRP5sb8fy.glb
-# scene_dataset_config: /home/eku/workspace/habitat-sim/data/mp3d_example/mp3d.scene_dataset_config.json
+# scene_path: ${dataset_root}/habitat-sim/data/mp3d_example/17DRP5sb8fy/17DRP5sb8fy.glb
+# scene_dataset_config: ${dataset_root}/habitat-sim/data/mp3d_example/mp3d.scene_dataset_config.json
 
 # Replica
-# scene_path: /home/eku/workspace/dataset/Replica-Dataset/Replica_original/room_0/habitat/mesh_semantic.ply
-# scene_dataset_config: /home/eku/workspace/dataset/Replica-Dataset/Replica_original/replica.scene_dataset_config.json
-
+# scene_path: ${dataset_root}/Replica-Dataset/Replica_original/room_0/habitat/mesh_semantic.ply
+# scene_dataset_config: ${dataset_root}/Replica-Dataset/Replica_original/replica.scene_dataset_config.json
 
 # Object Path
-objects_path: /home/tipriest/dataset/ycb/objects/ycb/configs
+objects_path: ${dataset_root}/ycb/objects/ycb/configs
 
 # Sensor and Camera Settings
 data_cfg:

@@ -1,7 +1,8 @@
 {
-    "git.detectSubmodules": false,
-    "git.ignoredRepositories": [
-        "**/3rdparty/habitat-sim",
-        "**/3rdparty/habitat-lab"
-    ]
+  "git.detectSubmodules": false,
+  "git.ignoredRepositories": [
+    "**/3rdparty/habitat-sim",
+    "**/3rdparty/habitat-lab"
+  ],
+  "ros.distro": "humble"
 }
