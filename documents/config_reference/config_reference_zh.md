@@ -4,7 +4,7 @@
 
 ---
 
-## 📁 数据集输出路径设置 (Dataset Result Output Settings)
+## 📁 保存的ROSBAG与RGBD数据集输出路径设置 (Dataset Result Output Settings)
 
 
 ```yaml
