@@ -20,7 +20,7 @@ project_root: ${user_home}/Documents/vln_simulator
 
 # 使用哪一个仿真数据集的哪一个仿真场景
 dataset_name: hm3d
-output_path: ${project_root}/output
+output_path: ${project_root}/outputs
 scene_name: 00829-QaLdnwvtxbs
 
 # Habitat Setting

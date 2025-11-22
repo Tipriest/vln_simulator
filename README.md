@@ -9,13 +9,18 @@
 
 - ROS2消息发送/接收/录制ROS bag:
   - 消息发送:
-    - 机器人于房间的位姿Pose
-    - 机器人此时的RGBD信息
-    - 机器人此时的RGB图像对应的所有物体的检测框和实例分割图像
+    - 机器人位姿
+    - 机器人传感器这一帧的RGBD信息
+    - 机器人传感器这一帧的深度信息
+    - [TODO] 机器人传感器这一帧的语义分割的ground_truth信息
+  - 生成文件，但是没有以ROS消息的形式发送出来
+    - 所有类别物体的检测框(class_bbox.json)
+    - 所有类别物体的数量(class_num.json)
   - 消息接收:
     - 接收ROS2的控制指令，视角进行移动
   - 录制ROS bag
     - 录制对应的ROS2 bag用于建图等方面的测试
+
 ---
 
 
@@ -83,23 +88,10 @@ python -m habitat_data_collector.main
 
 默认情况下，它使用位于 `config/habitat_data_collector.yaml` 的配置文件。有关配置详情，请参阅 [配置参考](documents/config_reference/config_reference.md)。
 
-### ROS2 集成（可选）
 
-如果您希望接收和发送 ROS2 话题输出或录制 ROS2 bag：
+## 用户指南
 
-1. 按照 [官方指南](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debians.html) 安装 **ROS2 Humble**。
-2. 在运行采集器之前 source ROS2 环境：
-
-```bash
-source /opt/ros/humble/setup.bash  # 或者 setup.zsh
-```
-
-source 之后，仿真器将向 ROS2 话题发布数据。您可以通过在 `config/habitat_data_collector.yaml` 中启用 ROS 录制配置来录制这些数据。有关话题配置和 ROS2-to-ROS1 桥接设置，请参阅 [ROS 集成文档](documents/ros.md)。
-
-
-## 📘 用户指南
-
-**仿真器成功启动后，请参阅 [使用指南](documents/usage/usage.md) 了解如何**：
+**仿真器成功启动后，请参阅 [使用指南](documents/usage/usage_zh.md) 了解如何**：
 
 - 移动相机并探索场景
 - 添加、放置、抓取和删除物体
