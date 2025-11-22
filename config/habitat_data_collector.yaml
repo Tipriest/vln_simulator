@@ -3,7 +3,7 @@ defaults:
 
 # Scene Output Settings
 dataset_name: hm3d
-output_path: /home/eku/workspace/hiemap/data
+output_path: /home/tipriest/Documents/habitat-data-collector/output
 scene_name: 00829-QaLdnwvtxbs
 
 # Habitat Setting
@@ -17,8 +17,8 @@ load_from_config: false
 scene_config: /home/eku/workspace/dataset/HM3D_collect/00829-QaLdnwvtxbs/dynamic_scene_config/0117.json
 
 # HM3D
-scene_path: /home/eku/workspace/dataset/HM3D/val/00829-QaLdnwvtxbs/QaLdnwvtxbs.basis.glb
-scene_dataset_config: /home/eku/workspace/dataset/HM3D/val/hm3d_annotated_basis.scene_dataset_config.json
+scene_path: /home/tipriest/dataset/hm3d/val/00829-QaLdnwvtxbs/QaLdnwvtxbs.basis.glb
+scene_dataset_config: /home/tipriest/dataset/hm3d/val/hm3d_annotated_basis.scene_dataset_config.json
 
 # MP3D
 # scene_path: /home/eku/workspace/habitat-sim/data/mp3d_example/17DRP5sb8fy/17DRP5sb8fy.glb
@@ -30,20 +30,25 @@ scene_dataset_config: /home/eku/workspace/dataset/HM3D/val/hm3d_annotated_basis.
 
 
 # Object Path
-objects_path: /home/eku/workspace/dataset/objects/new_objects
+objects_path: /home/tipriest/dataset/ycb/objects/ycb/configs
 
 # Sensor and Camera Settings
 data_cfg:
+  # 用于可重复性和初始启动点的随机种子
   seed: 12
+  # 启用/禁用特定传感器输出
   rgb: true
   depth: true
   semantic: true
+  # 图像的像素尺寸
   resolution:
     w: 1200
     h: 680
+  # 相机离地高度（米）设置为机器人的高度
   camera_height: 1.5
 
 # Agent Movement
+# 配置智能体控制速度（根据动作以米/秒或度/帧为单位）
 movement_cfg:
   move_forward: 0.4
   move_backward: 0.4
@@ -67,7 +72,7 @@ placable_categories:
   - stool
 
 # Show the bounding box of all the placable categories
-show_placable_categories: False
+show_placable_categories: True
 
 frame_rate: 30.0
 

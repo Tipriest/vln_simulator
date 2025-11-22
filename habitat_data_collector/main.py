@@ -16,6 +16,7 @@ from .utils.ros_data_collector import *
 from .utils.habitat_utils import *
 
 # ROS 2 Utils (only if ROS 2 is available)
+# 检查 ROSDataCollector 是否成功导入，以此判断是否启用 ROS 功能
 ros_enabled = ROSDataCollector is not None
 
 @hydra.main(
@@ -25,19 +26,25 @@ ros_enabled = ROSDataCollector is not None
 )
 def main(cfg: DictConfig) -> None:
 
+    # 设置环境变量以抑制 Habitat Sim 和 Magnum 的日志输出，保持控制台整洁
     os.environ["MAGNUM_LOG"] = "quiet"
     os.environ["HABITAT_SIM_LOG"] = "quiet"
     print(cfg.output_path)
+    
+    # 创建输出目录
     os.makedirs(cfg.output_path, exist_ok=True)
     dataset_dir = Path(cfg.output_path) / cfg.dataset_name
 
     # Initialize ROS 2 node if enabled and ROS 2 is available
+    # 如果环境支持 ROS 且配置中启用了 ROS，则初始化 ROS 节点
     if ros_enabled and cfg.get("use_ros", True):  # Only initialize ROS if it's enabled
         import rclpy
         rclpy.init()
+        # 初始化数据收集器（发布者）和监听器（订阅者）
         data_collector = ROSDataCollector(ros_enabled=True)
         data_listener = ROSDataListener(ros_enabled=True)
-        # Run ROS 2 spin in a separate thread
+        
+        # 在单独的线程中运行 ROS 2 spin，以免阻塞主仿真循环
         def spin_ros():
             rclpy.spin(data_listener)
 
@@ -49,6 +56,7 @@ def main(cfg: DictConfig) -> None:
         data_listener = None
         print("ROS is not enabled or unavailable.")
 
+    # 自动生成唯一的场景保存目录，避免覆盖已有数据 (例如 scene_name_1, scene_name_2)
     id = 1
     while True:
         scene_dir = dataset_dir / f"{cfg.scene_name}_{id}"
@@ -60,9 +68,11 @@ def main(cfg: DictConfig) -> None:
     print(f"Data will be saved at {scene_dir}")
     scene_dir.mkdir(parents=True, exist_ok=True)
 
+    # 根据配置构建 Habitat 仿真器配置
     config = make_cfg(cfg)
 
     # create a simulator instance
+    # 创建仿真器实例
     sim = habitat_sim.Simulator(config)
 
     print("Scene has been loaded")
@@ -83,30 +93,38 @@ def main(cfg: DictConfig) -> None:
     # print_scene_objects_info(scene)
 
     # save the scene information into the output folder
+    # 保存场景中所有物体的信息（类别、包围盒等）到输出目录
     save_scene_object_info(scene, scene_dir)
 
     # initialize the agent
+    # 初始化智能体
     agent = sim.initialize_agent(cfg.default_agent)
 
     # Get all the objects
+    # 获取对象模板管理器，用于加载和管理物体模板
     obj_attr_mgr = sim.get_object_template_manager()
 
+    # 加载物体配置文件
     obj_attr_mgr.load_configs(cfg.objects_path)
 
+    # 注册物体模板并建立 ID 到 Handle 的映射
     id_handle_dict = register_templates_from_handles(obj_attr_mgr, cfg)
 
     # save this in cfg
+    # 将映射保存到配置中，供后续使用
     cfg.id_handle_dict = id_handle_dict
 
     handle_list = list(cfg.id_handle_dict.values())
 
     # the objects from predefined scene configs
+    # 如果配置要求从文件加载场景物体，则执行加载
     scene_objects = []
 
     if cfg.load_from_config:
         scene_objects = load_objects_from_config(sim, cfg)
 
     # Get all the placeable objects' bboxes
+    # 获取所有可放置物体的包围盒，用于后续随机放置物体
     all_bboxes_for_place = []
 
     for category in cfg.placable_categories:
@@ -118,6 +136,7 @@ def main(cfg: DictConfig) -> None:
         draw_bounding_boxes(sim, obj_attr_mgr, all_bboxes_for_place)
 
     # Set the initial state
+    # 设置智能体的初始状态（随机位置）
     agent_state = habitat_sim.AgentState()
 
     sim.pathfinder.seed(cfg.data_cfg.seed)
@@ -129,6 +148,7 @@ def main(cfg: DictConfig) -> None:
     agent.set_state(agent_state)
 
     # In actions LOOP!
+    # 初始化录制相关的变量
     init_record_state = agent_state
     init_record_time = None
     actions_list = []
@@ -143,6 +163,7 @@ def main(cfg: DictConfig) -> None:
     all_actions = []
 
     # navigation flag
+    # 导航相关标志位和变量
     is_navigation = False
     nav_goal = None
     nav_path = None
@@ -151,27 +172,33 @@ def main(cfg: DictConfig) -> None:
     previous_global_path = None
 
     # Initialize global list for all rigid objects
+    # 维护场景中所有刚体对象的列表
     all_rigid_objects = []
     all_rigid_objects.extend(scene_objects)
 
     # Get camera parameters and save
+    # 获取并保存相机内参
     fx, fy, cx, cy, width, height = get_camera_intrinsics(sim, "color_sensor")
     intrinsics_file_path = scene_dir / "camera_intrinsics.json"
     save_intrinsics(intrinsics_file_path, fx, fy, cx, cy, width, height)
 
     # Set frame rate
+    # 设置帧率控制
     target_fps = cfg.frame_rate
     frame_interval = 1 / target_fps
 
     # We ONLY calculate the topdown map once
+    # 计算一次顶视图地图，用于导航和显示
     height = sim.pathfinder.get_bounds()[0][1]
 
     sim_topdown_map = sim.pathfinder.get_topdown_view(0.05, height)
 
     # Get SHrunk map of the topdown map
+    # 获取收缩后的地图（腐蚀操作），用于确定合法的物体放置区域
     shrunk_map = shrink_false_areas(sim_topdown_map, 2, 3)
 
     # Object sem id for grabbing
+    # 记录当前抓取的物体语义 ID
     grabbed_obj_sem_id = None
 
 
@@ -180,6 +207,7 @@ def main(cfg: DictConfig) -> None:
     while True:
 
         # control the frame rate
+        # 帧率控制逻辑：计算循环耗时并休眠剩余时间
         elapsed_time = time.time() - last_time
         sleep_time = frame_interval - elapsed_time
         if sleep_time > 0:
@@ -189,15 +217,18 @@ def main(cfg: DictConfig) -> None:
         last_time = time.time()
 
         topdown_map = None
+        # 执行物理步进
         sim.step_physics(frame_interval)
 
         # Filter invalid objects
+        # 移除掉落到地板以下的无效物体
         objects_to_remove = filter_rigid_objects(all_rigid_objects, height, 0.3)
         for obj in objects_to_remove:
             all_rigid_objects.remove(obj)
             sim.get_rigid_object_manager().remove_object_by_id(obj.object_id)
 
         # Map handling
+        # 处理地图显示逻辑（按 'm' 键切换）
         if map_count % 2 == 1:
             last_point = agent.get_state().position
             agent_position = convert_points_to_topdown(sim.pathfinder, last_point, 0.05)
@@ -206,6 +237,7 @@ def main(cfg: DictConfig) -> None:
             ]
 
             # Visualize the map with the goal and path on the topdown map
+            # 在顶视图上绘制智能体、物体、目标点和路径
             if nav_goal is not None:
                 nav_goal_plot = convert_points_to_topdown(sim.pathfinder, nav_goal, 0.05)
                 nav_path_plot = [
@@ -229,12 +261,13 @@ def main(cfg: DictConfig) -> None:
                 )
 
         # Capture the sensor state
+        # 获取传感器状态
         agent_state = sim.get_agent(0).get_state()
         sensor_pos = agent_state.sensor_states["color_sensor"].position
         sensor_quat = agent_state.sensor_states["color_sensor"].rotation
 
         # Navigation handling
-
+        # 导航处理逻辑：如果路径跟随器存在且未完成，则更新智能体状态
         # FOR DEBUG, HERE commented for mannually control
         if continuous_path_follower and continuous_path_follower.progress < 1.0:
 
@@ -250,10 +283,12 @@ def main(cfg: DictConfig) -> None:
             # Set the state of following
             sim.get_agent(0).set_state(agent_state)
 
+        # 获取并显示传感器观测数据
         obs = sim.get_sensor_observations()
         display_obs(obs, help_count, topdown_map, recording)
 
         # Publish data via ROS if enabled
+        # 如果启用了 ROS，发布 RGB、深度、位姿和相机信息
         if data_collector:
             rgb_img = np.array(obs["color_sensor"])
             depth_img = np.array(obs["depth_sensor"])
@@ -266,6 +301,7 @@ def main(cfg: DictConfig) -> None:
             data_collector.publish_camera_info(fx, fy, cx, cy, width, height)
 
         # Actions based on ROS information
+        # 监听 ROS 传来的全局路径
         if data_listener:
             # Check for the global path in the listener
             global_path = data_listener.get_latest_path()
@@ -274,6 +310,7 @@ def main(cfg: DictConfig) -> None:
                 is_navigation = True  # set navigation
                 previous_global_path = global_path  # update the previous path
 
+        # 导航模式初始化逻辑
         if is_navigation:
             # Set Follower
             current_state = sim.get_agent(0).get_state()
@@ -287,6 +324,7 @@ def main(cfg: DictConfig) -> None:
 
                 # switch to numpy
                 # change Y to current Y
+                # 将 ROS 路径点转换为 Habitat 坐标系下的点
                 pose_in_habitat = [
                     np.array([x, current_position[1], z])
                     for x, _, z in previous_global_path
@@ -294,6 +332,7 @@ def main(cfg: DictConfig) -> None:
 
                 # Judge Path start point with current rotation
                 # Ignore the points which are behind the current position, 
+                # 过滤掉当前位置后方的路径点，确保路径是向前的
 
                 print(f"current rotation: \t", current_rotation)
                 print(f"current position: \t", current_position)
@@ -309,6 +348,7 @@ def main(cfg: DictConfig) -> None:
             else:
                 # Get The Random Path Here!!!
                 # If not online, gen the path with the nav mesh
+                # 如果没有外部路径，则生成随机导航路径
                 if not sim.pathfinder.is_loaded:
                     print("Pathfinder not initialized, aborting.")
 
@@ -320,14 +360,17 @@ def main(cfg: DictConfig) -> None:
             # if we get the path, then initialize the follower, ready for navigation
             # waypoint_thresholdcontrol the distance from the final position to the goal
             # TODO: Magic number waypoint th
+            # 初始化连续路径跟随器
             continuous_path_follower = ContinuousPathFollower(
                 sim, nav_path, sim.get_agent(0).get_state(), waypoint_threshold=0.1
             )
 
             # flip the navigation flag
+            # 翻转标志位，防止下一帧重复初始化
             is_navigation = not is_navigation
             continue
 
+        # 键盘控制逻辑
         k, action = keyboard_control_fast()
         if k != -1:
             if action == "stop":
@@ -335,6 +378,7 @@ def main(cfg: DictConfig) -> None:
                 break
 
             if action == "record":
+                # 切换录制状态
                 recording = not recording
                 if recording:
                     print("Recording started")
@@ -343,6 +387,7 @@ def main(cfg: DictConfig) -> None:
                     actions_list = []
 
                     # ROS2 bag
+                    # 如果配置启用，开始录制 ROS bag
                     if cfg.record_rosbag:
                         rosbag_output_path = scene_dir / "rosbag2"
                         print(f"Start ROS bag recording: {rosbag_output_path}")
@@ -362,12 +407,14 @@ def main(cfg: DictConfig) -> None:
                 continue
 
             if action == "add_object":
+                # 随机添加物体到场景
                 print("Adding object to scene...")
                 obj = sample_and_place(sim, handle_list, all_bboxes_for_place, shrunk_map)
                 if obj:
                     all_rigid_objects.append(obj)
                     print("Object added and recorded.")
                     # logging the add_object action
+                    # 记录添加物体的动作
                     manipulate_object_time = time.time()
                     action_info = get_object_action_info(obj, manipulate_object_time, action)
                     actions_list.append(action_info)
@@ -377,11 +424,13 @@ def main(cfg: DictConfig) -> None:
                 continue
 
             if action == "remove_object":
+                # 随机移除场景中的物体
                 if all_rigid_objects:
                     obj_to_remove = random.choice(all_rigid_objects)
 
                     # logging first
                     # logging the object action
+                    # 记录移除物体的动作
                     manipulate_object_time = time.time()
                     action_info = get_object_action_info(obj_to_remove, manipulate_object_time, action)
                     actions_list.append(action_info)
@@ -398,6 +447,7 @@ def main(cfg: DictConfig) -> None:
                 continue
 
             if action == "place_in_view":
+                # 在当前视野内放置物体
                 # Filter bboxes in view
                 bboxes_in_view = filter_bboxes_in_view(sim, all_bboxes_for_place)
 
@@ -422,6 +472,7 @@ def main(cfg: DictConfig) -> None:
                 continue
 
             if action == "grab":
+                # 抓取最近的物体（实际上是移除并记录 ID）
                 nearest_obj = find_nearest_obj(sim, all_rigid_objects)
 
                 # remember this object semantic id
@@ -437,7 +488,7 @@ def main(cfg: DictConfig) -> None:
                 continue
 
             if action == "release":
-                
+                # 释放（放置）之前抓取的物体到最近的包围盒
                 if grabbed_obj_sem_id is None:
                     print("No grabbed object, Please grab object first")
                     continue
@@ -459,16 +510,19 @@ def main(cfg: DictConfig) -> None:
                 continue
 
             if action == "save_config":
+                # 保存当前场景配置
                 config_file_path = scene_dir / "scene_config.json"
                 save_config(cfg, all_rigid_objects, config_file_path)
 
                 continue
 
             if action == "navigation":
+                # 切换导航模式
                 is_navigation = not is_navigation
                 continue
 
             # Process movement actions
+            # 处理移动动作
             action_time = time.time()
             sim.step(action)
             print(f"Action timestamp: {action_time}, action: {action}")
@@ -479,6 +533,7 @@ def main(cfg: DictConfig) -> None:
                 })
         else:
             # Record the "no action" state with a timestamp
+            # 如果没有动作，也记录时间戳，保持时间同步
             if recording:
                 no_action_time = time.time()
                 actions_list.append({
@@ -493,6 +548,7 @@ def main(cfg: DictConfig) -> None:
 
     if len(all_actions) > 0:
         # restart the sim
+        # 重启仿真器进行回放和保存
         sim = habitat_sim.Simulator(config)
         # Get all the objects
         obj_attr_mgr = sim.get_object_template_manager()
@@ -501,6 +557,7 @@ def main(cfg: DictConfig) -> None:
 
         register_templates_from_handles(obj_attr_mgr, cfg)
 
+        # 回放动作序列并保存数据
         replay_and_save(sim, cfg, scene_dir, all_actions, init_record_state, init_record_time)
 
     sim.close()

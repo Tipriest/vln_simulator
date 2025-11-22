@@ -22,14 +22,22 @@
 
 ## 📚 Table of Contents
 
-- [Environment Setup](#-environment-setup)
-- [Dataset Setup](#-dataset-setup)
-- [Configuration Guide](#️-configuration-guide)
-- [Run the Collector](#-run-the-collector)
-  - [ROS2 Integration (Optional)](#-ros2-integration-optional)
-- [User Guide](#-user-guide)
-- [Project Structure](#-project-structure)
-- [Acknowledgment](#-acknowledgment)
+- [✨ Features](#-features)
+- [📚 Table of Contents](#-table-of-contents)
+- [📦 Environment Setup](#-environment-setup)
+  - [1. Clone the repository with submodules](#1-clone-the-repository-with-submodules)
+  - [2. Create the Conda environment](#2-create-the-conda-environment)
+  - [3. Build and install Habitat Sim \& Lab](#3-build-and-install-habitat-sim--lab)
+- [📦 Dataset Setup](#-dataset-setup)
+- [⚙️ Configuration Guide](#️-configuration-guide)
+- [🚀 Run the Collector](#-run-the-collector)
+  - [ROS2 Integration (Optional)](#ros2-integration-optional)
+- [📘 User Guide](#-user-guide)
+- [📁 Project Structure](#-project-structure)
+- [⚠️ Notes](#️-notes)
+- [🔗 Citation](#-citation)
+- [🙏 Acknowledgment](#-acknowledgment)
+- [📜 License](#-license)
 
 
 
@@ -63,6 +71,7 @@ bash scripts/install_habitat.sh
 > During compiling with habitat-sim, if having error with OgenGL, like `Could NOT find OpenGL` and errors with compiling `zlib_external`, install the required libs by:
 >```bash
 > sudo apt install libgl1-mesa-dev libglu1-mesa-dev freeglut3-dev zlib1g-dev
+> sudo apt-get install -y ros-humble-rmw-cyclonedds-cpp 
 >```
 
 
