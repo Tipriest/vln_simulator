@@ -32,6 +32,11 @@
 cd ~/Documents
 git clone --recurse-submodules git@github.com:Tipriest/vln_simulator.git
 cd vln_simulator
+
+# 上面的git clone的部分几乎肯定会因为网络问题有一些包没有办法失败后一次clone下来
+# 可以运行下面的指令对上面的包进行补充
+
+git submodule update --init --recursive
 ```
 
 #### 2.2 创建 Conda 环境
@@ -47,8 +52,9 @@ conda activate vln_simulator
 > Habitat 无法通过 conda 在 Python 3.10 中直接安装，因此必须手动编译。
 
 ```bash
-# 这里编译的时候有可能会出现一个什么包装不了的问题，需要删掉3rdparty路径下的habitat-sim文件夹重新运行下面的命令:
 bash scripts/install_habitat.sh
+# 这里编译的时候有可能会出现一个什么包装不了的问题，需要删掉3rdparty路径下的habitat-sim文件夹重新运行下面的命令:
+
 ```
 
 > 在编译 habitat-sim 过程中，如果遇到 OpenGL 错误（如 `Could NOT find OpenGL`）或编译 `zlib_external` 时出错，请安装以下依赖库：
