@@ -25,7 +25,7 @@ ${output_path}/${dataset_name}/${scene_name}_X
 
 ---
 
-## 🗺️ 场景配置 (Scene Configuration)
+## 🗺️ 使用场景配置 (Scene Configuration)
 
 ```yaml
 load_from_config: false
