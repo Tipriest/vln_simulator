@@ -10,6 +10,11 @@ try:
     from cv_bridge import CvBridge
     import numpy as np
 
+    # new imports needed for applying pose to habitat agent
+    import habitat_sim
+    import magnum as mn
+    from scipy.spatial.transform import Rotation as SciRot
+
     class ROSDataCollector(Node):
         def __init__(self, ros_enabled=False):
             super().__init__('data_collector')
@@ -87,11 +92,12 @@ try:
             self.camera_info_pub.publish(camera_info_msg)
 
     class ROSDataListener(Node):
-        def __init__(self, ros_enabled=True):
+        def __init__(self, ros_enabled=True, gazebo_topic: str = "/odom"):
             super().__init__('listener_node')
             self.ros_enabled = ros_enabled
 
             self.latest_path = None  # Used to store the most recently received path
+            self.latest_gazebo_pose = None  # (position_list, quat_list) in Habitat coords
 
             if self.ros_enabled:
                 # Subscriber for action_path
@@ -102,7 +108,15 @@ try:
                     10
                 )
 
-                self.get_logger().info("Listener initialized and ready to subscribe to topics.")
+                # Subscriber for gazebo robot pose (nav_msgs/Odometry expected)
+                self.gazebo_subscriber = self.create_subscription(
+                    Odometry,
+                    gazebo_topic,
+                    self.gazebo_pose_callback,
+                    10
+                )
+
+                self.get_logger().info(f"Listener initialized and ready to subscribe to topics. Gazebo topic: {gazebo_topic}")
 
         def action_path_callback(self, msg):
             """
@@ -154,6 +168,135 @@ try:
             
             return pose_in_habitat
 
+        # --- new gazebo pose handling methods ---
+        def gazebo_pose_callback(self, msg: Odometry):
+            """
+            Callback to receive Odometry from Gazebo, transform it to Habitat coordinates,
+            and store the latest pose for application to the Habitat agent.
+
+            Args:
+                msg (Odometry): The Odometry message containing the pose data from Gazebo.
+            """
+            try:
+                # Extract position and orientation from Odometry
+                px = msg.pose.pose.position.x
+                py = msg.pose.pose.position.y
+                pz = msg.pose.pose.position.z
+                ox = msg.pose.pose.orientation.x
+                oy = msg.pose.pose.orientation.y
+                oz = msg.pose.pose.orientation.z
+                ow = msg.pose.pose.orientation.w
+                
+                # Convert quaternion to roll, pitch, yaw (in radians)
+                rotation = SciRot.from_quat([ox, oy, oz, ow])
+                roll, pitch, yaw = rotation.as_euler('xyz', degrees=False)
+                
+                # Print pose information with Euler angles
+                print(f"Position - x: {px:.3f}, y: {py:.3f}, z: {pz:.3f}")
+                print(f"Orientation (quat) - x: {ox:.3f}, y: {oy:.3f}, z: {oz:.3f}, w: {ow:.3f}")
+                print(f"Orientation (RPY) - roll: {roll:.3f}, pitch: {pitch:.3f}, yaw: {yaw:.3f} (rad)")
+                print(f"Orientation (RPY) - roll: {np.degrees(roll):.1f}°, pitch: {np.degrees(pitch):.1f}°, yaw: {np.degrees(yaw):.1f}°")
+                print("-" * 60)
+                
+                # 加一个角度偏置
+                roll -= np.pi/2
+                
+                # 将修改后的 roll pitch yaw 转换为新的四元数和旋转矩阵
+                new_rotation = SciRot.from_euler('xyz', [roll, pitch, yaw], degrees=False)
+                new_quat = new_rotation.as_quat()  # returns [x, y, z, w]
+                _ox, _oy, _oz, _ow = new_quat[0], new_quat[1], new_quat[2], new_quat[3]
+                rotm = new_rotation.as_matrix()  # 使用修改后的欧拉角生成旋转矩阵
+
+
+                # Build homogeneous transform in SYSTEM (ROS/Gazebo) coordinates
+                pose_sys = np.eye(4, dtype=float)
+                pose_sys[:3, :3] = rotm
+                pose_sys[:3, 3] = np.array([-py, px, pz], dtype=float)
+
+                # Transform to Habitat coordinates using existing helper
+                pose_hab = self.get_habitat_pose(pose_sys)
+
+                hab_pos = pose_hab[:3, 3]
+                hab_rotm = pose_hab[:3, :3]
+                hab_quat = SciRot.from_matrix(hab_rotm).as_quat()  # returns [x,y,z,w]
+
+                # Store as lists: position list and quaternion [x,y,z,w]
+                self.latest_gazebo_pose = (hab_pos.tolist(), hab_quat.tolist())
+
+                self.get_logger().debug(f"Received gazebo odom -> habitat pos: {self.latest_gazebo_pose[0]}, quat: {self.latest_gazebo_pose[1]}")
+            except Exception as e:
+                self.get_logger().error(f"Error processing gazebo odom: {e}")
+
+        def get_latest_gazebo_pose(self):
+            """
+            Return the latest gazebo pose transformed into Habitat coordinates.
+            Returns:
+                tuple or None: (position_list [x,y,z], quat_list [x,y,z,w]) or None if no pose received.
+            """
+            return self.latest_gazebo_pose
+
+        def apply_pose_to_agent(self, sim: 'habitat_sim.Simulator', agent_id: int = 0, reset_sensors: bool = True):
+            """
+            Apply the latest received Gazebo pose (already transformed to Habitat coordinates)
+            to the given Habitat agent.
+
+            Args:
+                sim: Habitat simulator instance.
+                agent_id: target agent id (default 0).
+                reset_sensors: whether to reset sensors after setting state.
+            """
+            if self.latest_gazebo_pose is None:
+                # nothing to apply
+                return False
+
+            pos_list, quat_list = self.latest_gazebo_pose
+            try:
+                # Construct AgentState with habitat_sim.AgentState
+                agent_state = habitat_sim.AgentState()
+                agent_state.position = [float(pos_list[0]), float(pos_list[1]), float(pos_list[2])]
+
+                # SciPy returns quat as [x,y,z,w], magnum Quaternion uses ((x,y,z), w) format
+                qx, qy, qz, qw = float(quat_list[0]), float(quat_list[1]), float(quat_list[2]), float(quat_list[3])
+                # Correct way to construct magnum Quaternion: ((vector), scalar)
+                agent_state.rotation = [qx, qy, qz, qw]
+                # Apply state to agent
+                sim.get_agent(agent_id).set_state(agent_state, reset_sensors=reset_sensors, infer_sensor_states=False)
+                return True
+            except Exception as e:
+                self.get_logger().error(f"Failed to apply gazebo pose to agent: {e}")
+                return False
+
+        def transform_path_to_habitat(self, path_sys):
+            """
+            Transform a path from the system coordinate frame to the Habitat coordinate frame.
+
+            This function transforms a given path from the system coordinate frame to the
+            Habitat coordinate frame using predefined transformation matrices.
+
+            Args:
+                path_sys (list): A list of tuples representing the path in the system
+                                 coordinate frame, where each tuple is (x, y, z).
+
+            Returns:
+                list: A list of tuples representing the path in the Habitat coordinate frame.
+            """
+            pose_from_ros = [np.array(pose) for pose in path_sys]
+
+            pose_in_habitat = []
+
+            for point in pose_from_ros:
+                # Extend to homogeneous coordinates
+                pose_sys = np.eye(4)
+                pose_sys[:3, 3] = point  # Only set the translation part
+                # Call the get_habitat_pose function
+                transformed_pose = self.get_habitat_pose(pose_sys)
+                # Extract the transformed 3D coordinates
+                transformed_point = transformed_pose[:3, 3]
+                # Append the transformed point
+                pose_in_habitat.append(tuple(transformed_point))
+            
+            return pose_in_habitat
+
         def get_habitat_pose(self, pose_sys):
             """
             Convert a pose from the system coordinate frame to the Habitat coordinate frame.
@@ -175,12 +318,18 @@ try:
             cam_sys_to_cam_habi = np.array(
                 [[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]]
             )
+            roll_offset = np.array(
+                [[0, -1, 0, 0], 
+                 [1, 0, 0, 0], 
+                 [0, 0, 1, 0], 
+                 [0, 0, 0, 1]]
+            )
 
             world_sys_to_world_habi = np.linalg.inv(world_habi_to_world_sys)
             cam_habi_to_cam_sys = np.linalg.inv(cam_sys_to_cam_habi)
 
             # world_sys_to_world_habi @ cam_sys_to_world_sys @ cam_habi_to_cam_sys
-            cam_habi_to_world_habi = world_sys_to_world_habi @ pose_sys @ cam_habi_to_cam_sys
+            cam_habi_to_world_habi = world_sys_to_world_habi @ pose_sys  @ cam_habi_to_cam_sys
 
             return cam_habi_to_world_habi
     

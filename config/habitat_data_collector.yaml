@@ -52,6 +52,8 @@ objects_path: ${dataset_root}/ycb/objects/ycb/configs
 data_cfg:
   # 用于可重复性和初始启动点的随机种子
   seed: 12
+  start_pos_x: 0.0
+  start_pos_y: 0.0
   # 启用/禁用特定传感器输出
   rgb: true
   depth: true
@@ -100,3 +102,7 @@ record_rosbag: True
 # PLACEHOLDER, for mapping semantic_id to object handle
 # Do not Delete this holder
 id_handle_dict: {}
+
+# 是否对gazebo中的机器人位置进行跟随，如果是的话，则直接的窗口的指令控制失效
+follow_gazebo: True
+gazebo_robot_topic: /odom
