@@ -283,7 +283,7 @@ def main(cfg: DictConfig) -> None:
             # Set the state of following
             sim.get_agent(0).set_state(agent_state)
             
-        if True: # FIXME: 
+        if cfg.follow_gazebo: 
             data_listener.apply_pose_to_agent(sim=sim)
 
         # 获取并显示传感器观测数据
