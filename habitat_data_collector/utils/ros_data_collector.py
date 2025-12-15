@@ -150,25 +150,6 @@ try:
             """
             return self.latest_path
 
-        def transform_path_to_habitat(self, path_sys):
-
-            pose_from_ros = [np.array(pose) for pose in path_sys]
-
-            pose_in_habitat = []
-
-            for point in pose_from_ros:
-                # Extend to homogeneous coordinates
-                pose_sys = np.eye(4)
-                pose_sys[:3, 3] = point  # Only set the translation part
-                # Call the get_habitat_pose function
-                transformed_pose = self.get_habitat_pose(pose_sys)
-                # Extract the transformed 3D coordinates
-                transformed_point = transformed_pose[:3, 3]
-                # Append the transformed point
-                pose_in_habitat.append(tuple(transformed_point))
-
-            return pose_in_habitat
-
         # --- new gazebo pose handling methods ---
         def gazebo_pose_callback(self, msg: Odometry):
             """
