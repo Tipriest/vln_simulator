@@ -64,20 +64,14 @@ bash scripts/install_habitat.sh
 > 在编译 habitat-sim 过程中，如果遇到 OpenGL 错误（如 `Could NOT find OpenGL`）或编译 `zlib_external` 时出错，请安装以下依赖库：
 ```bash
  sudo apt install libgl1-mesa-dev libglu1-mesa-dev freeglut3-dev zlib1g-dev
- sudo apt-get install -y ros-humble-rmw-cyclonedds-cpp 
+ sudo apt-get install -y ros-humble-rmw-cyclonedds-cpp
 ```
 
-## 📦 数据集设置
+## 三. 数据集设置
 
 在运行工具之前，请按照 [数据集设置指南](documents/dataset/dataset_netdisk.md) 准备所需的数据集。
 
-
-## ⚙️ 配置指南
-
-有关配置选项和结构的详细说明，请参阅 [配置参考](documents/config_reference/config_reference_zh.md)。正确设置配置对于运行此工具至关重要。
-
-
-## 运行采集器
+## 四. 运行采集器
 
 从根目录运行主仿真程序：
 
@@ -88,9 +82,10 @@ python -m habitat_data_collector.main
 默认情况下，它使用位于 `config/habitat_data_collector.yaml` 的配置文件。有关配置详情，请参阅 [配置参考](documents/config_reference/config_reference.md)。
 
 
-## 用户指南
 
-**仿真器成功启动后，请参阅 [使用指南](documents/usage/usage_zh.md) 了解如何**：
+## 五. 用户指南
+
+1. **仿真器成功启动后，请参阅 [使用指南](documents/usage/usage_zh.md) 了解如何**：
 
 - 移动相机并探索场景
 - 添加、放置、抓取和删除物体
@@ -99,27 +94,9 @@ python -m habitat_data_collector.main
 
 该指南包含视觉预览和终端输出示例，以便更好地理解。
 
+2. [与vln_gazebo_simulator的坐标转换问题说明](./documents/坐标转换.md)
 
-## 📁 项目结构
 
-
-```
-habitat-data-collector/
-├── habitat_data_collector/   # 主应用程序代码
-│   ├── main.py
-│   └── utils/
-├── config/                   # YAML 配置文件
-├── 3rdparty/                 # Git 子模块: habitat-sim & habitat-lab
-├── documents/               # Markdown 文档和媒体文件
-├── scripts/                 # 辅助脚本 (例如 build, setup)
-├── environment.yml          # Conda 环境规范
-└── README.md
-```
-
-## ⚠️ 注意事项
-使用 ROS 功能前必须安装并 `source ROS2 Humble`。
-配置通过 `OmegaConf` 和 `Hydra` 处理。
-所有路径、话题和行为均在 `habitat_data_collector.yaml` 中配置。
 
 
 ## 🔗 引用
