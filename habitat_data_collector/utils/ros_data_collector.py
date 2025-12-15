@@ -14,6 +14,7 @@ try:
     import habitat_sim
     import magnum as mn
     from scipy.spatial.transform import Rotation as SciRot
+    from . import pose_utils
 
     class ROSDataCollector(Node):
         def __init__(self, ros_enabled=False):
@@ -48,7 +49,7 @@ try:
             if self.ros_enabled:
                 # Create Odometry message
                 odom_msg = Odometry()
-                
+
                 # Set timestamp and coordinate frames
                 odom_msg.header.stamp = self.get_clock().now().to_msg()
                 odom_msg.header.frame_id = 'map'          # Parent coordinate frame (global coordinate frame)
@@ -73,10 +74,10 @@ try:
 
                 # Publish Odometry message
                 self.pose_pub.publish(odom_msg)
-        
+
         def publish_camera_info(self, fx, fy, cx, cy, width, height):
             camera_info_msg = CameraInfo()
-            
+
             # Intrinsic parameters
             camera_info_msg.width = width
             camera_info_msg.height = height
@@ -148,7 +149,7 @@ try:
                 list or None: The latest path as a list of (x, y, z) tuples, or None if no path is available.
             """
             return self.latest_path
-        
+
         def transform_path_to_habitat(self, path_sys):
 
             pose_from_ros = [np.array(pose) for pose in path_sys]
@@ -165,7 +166,7 @@ try:
                 transformed_point = transformed_pose[:3, 3]
                 # Append the transformed point
                 pose_in_habitat.append(tuple(transformed_point))
-            
+
             return pose_in_habitat
 
         # --- new gazebo pose handling methods ---
@@ -186,43 +187,41 @@ try:
                 oy = msg.pose.pose.orientation.y
                 oz = msg.pose.pose.orientation.z
                 ow = msg.pose.pose.orientation.w
-                
+
                 # Convert quaternion to roll, pitch, yaw (in radians)
                 rotation = SciRot.from_quat([ox, oy, oz, ow])
                 roll, pitch, yaw = rotation.as_euler('xyz', degrees=False)
-                
+
                 # Print pose information with Euler angles
+                print("-" * 25 + "before transformation" + "-" * 25)
                 print(f"Position - x: {px:.3f}, y: {py:.3f}, z: {pz:.3f}")
                 print(f"Orientation (quat) - x: {ox:.3f}, y: {oy:.3f}, z: {oz:.3f}, w: {ow:.3f}")
                 print(f"Orientation (RPY) - roll: {roll:.3f}, pitch: {pitch:.3f}, yaw: {yaw:.3f} (rad)")
                 print(f"Orientation (RPY) - roll: {np.degrees(roll):.1f}°, pitch: {np.degrees(pitch):.1f}°, yaw: {np.degrees(yaw):.1f}°")
                 print("-" * 60)
-                
-                # 加一个角度偏置
-                roll -= np.pi/2
-                
-                # 将修改后的 roll pitch yaw 转换为新的四元数和旋转矩阵
-                new_rotation = SciRot.from_euler('xyz', [roll, pitch, yaw], degrees=False)
-                new_quat = new_rotation.as_quat()  # returns [x, y, z, w]
-                _ox, _oy, _oz, _ow = new_quat[0], new_quat[1], new_quat[2], new_quat[3]
-                rotm = new_rotation.as_matrix()  # 使用修改后的欧拉角生成旋转矩阵
+
+                # 变换过程
+
+                hab_pos = [-py, pz, -px]
+                # 第1个轴对应实际的 2个对应实际的 3个
+                hab_euler = [-pitch, yaw, -roll] #rpy
+                hab_quat = pose_utils.euler_to_quat(roll = hab_euler[0],
+                                                pitch = hab_euler[1],
+                                                yaw = hab_euler[2])  # returns [w, x, y, z]
+                hab_quat = [hab_quat[1], hab_quat[2], hab_quat[3], hab_quat[0]]
 
 
-                # Build homogeneous transform in SYSTEM (ROS/Gazebo) coordinates
-                pose_sys = np.eye(4, dtype=float)
-                pose_sys[:3, :3] = rotm
-                pose_sys[:3, 3] = np.array([-py, px, pz], dtype=float)
+                # Print pose information with Euler angles
+                print("-" * 25 + "after transformation" + "-" * 25)
+                print(f"Position - x: {hab_pos[0]:.3f}, y: {hab_pos[1]:.3f}, z: {hab_pos[2]:.3f}")
+                print(f"Orientation (quat) - x: {hab_quat[0]:.3f}, y: {hab_quat[1]:.3f}, z: {hab_quat[2]:.3f}, w: {hab_quat[3]:.3f}")
+                print(f"Orientation (RPY) - roll: {hab_euler[2]:.3f}, pitch: {hab_euler[1]:.3f}, yaw: {hab_euler[0]:.3f} (rad)")
+                print(f"Orientation (RPY) - roll: {np.degrees(hab_euler[2]):.1f}°, pitch: {np.degrees(hab_euler[1]):.1f}°, yaw: {np.degrees(hab_euler[0]):.1f}°")
+                print("-" * 60)
 
-                # Transform to Habitat coordinates using existing helper
-                pose_hab = self.get_habitat_pose(pose_sys)
-
-                hab_pos = pose_hab[:3, 3]
-                hab_rotm = pose_hab[:3, :3]
-                hab_quat = SciRot.from_matrix(hab_rotm).as_quat()  # returns [x,y,z,w]
 
                 # Store as lists: position list and quaternion [x,y,z,w]
-                self.latest_gazebo_pose = (hab_pos.tolist(), hab_quat.tolist())
-
+                self.latest_gazebo_pose = (hab_pos, hab_quat)
                 self.get_logger().debug(f"Received gazebo odom -> habitat pos: {self.latest_gazebo_pose[0]}, quat: {self.latest_gazebo_pose[1]}")
             except Exception as e:
                 self.get_logger().error(f"Error processing gazebo odom: {e}")
@@ -253,7 +252,9 @@ try:
             try:
                 # Construct AgentState with habitat_sim.AgentState
                 agent_state = habitat_sim.AgentState()
-                agent_state.position = [float(pos_list[0]), float(pos_list[1]), float(pos_list[2])]
+                agent_state.position = [float(pos_list[0]),
+                                        float(pos_list[1]),
+                                        float(pos_list[2])]
 
                 # SciPy returns quat as [x,y,z,w], magnum Quaternion uses ((x,y,z), w) format
                 qx, qy, qz, qw = float(quat_list[0]), float(quat_list[1]), float(quat_list[2]), float(quat_list[3])
@@ -294,7 +295,7 @@ try:
                 transformed_point = transformed_pose[:3, 3]
                 # Append the transformed point
                 pose_in_habitat.append(tuple(transformed_point))
-            
+
             return pose_in_habitat
 
         def get_habitat_pose(self, pose_sys):
@@ -319,9 +320,9 @@ try:
                 [[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]]
             )
             roll_offset = np.array(
-                [[0, -1, 0, 0], 
-                 [1, 0, 0, 0], 
-                 [0, 0, 1, 0], 
+                [[0, -1, 0, 0],
+                 [1, 0, 0, 0],
+                 [0, 0, 1, 0],
                  [0, 0, 0, 1]]
             )
 
@@ -332,7 +333,7 @@ try:
             cam_habi_to_world_habi = world_sys_to_world_habi @ pose_sys  @ cam_habi_to_cam_sys
 
             return cam_habi_to_world_habi
-    
+
     def start_rosbag_recording(output_path):
         """
         Starts recording rosbag for given topics.
