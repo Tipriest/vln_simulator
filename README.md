@@ -58,6 +58,7 @@ conda activate vln_simulator
 ```bash
 bash scripts/install_habitat.sh
 # 这里编译的时候有可能会出现一个什么包装不了的问题，需要删掉3rdparty路径下的habitat-sim文件夹重新运行下面的命令:
+git submodule update --init --recursive
 
 ```
 
