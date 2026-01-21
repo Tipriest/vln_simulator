@@ -1,4 +1,3 @@
-# VLN_SIMULATOR
 # README.md
 
 ![](./documents/images/image.png)

@@ -4,5 +4,25 @@
     "**/3rdparty/habitat-sim",
     "**/3rdparty/habitat-lab"
   ],
-  "ros.distro": "humble"
+  "ros.distro": "humble",
+  "workbench.colorCustomizations": {
+    "activityBar.activeBackground": "#c2c34e",
+    "activityBar.background": "#c2c34e",
+    "activityBar.foreground": "#15202b",
+    "activityBar.inactiveForeground": "#15202b99",
+    "activityBarBadge.background": "#308e8f",
+    "activityBarBadge.foreground": "#e7e7e7",
+    "commandCenter.border": "#15202b99",
+    "sash.hoverBorder": "#c2c34e",
+    "statusBar.background": "#a5a638",
+    "statusBar.foreground": "#15202b",
+    "statusBarItem.hoverBackground": "#7f802b",
+    "statusBarItem.remoteBackground": "#a5a638",
+    "statusBarItem.remoteForeground": "#15202b",
+    "titleBar.activeBackground": "#a5a638",
+    "titleBar.activeForeground": "#15202b",
+    "titleBar.inactiveBackground": "#a5a63899",
+    "titleBar.inactiveForeground": "#15202b99"
+  },
+  "peacock.color": "#a5a638"
 }
