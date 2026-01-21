@@ -4,19 +4,19 @@
 用于作为一个简单的室内环境的仿真器平台
 - 加载环境
   - 加载指定的几个数据集的某几个室内环境
-  - [TODO] 加载室内环境带有可能随机出生的物体
+  - [MANUAL CONTROL] 加载室内环境带有可能随机出生的物体
 - ROS2消息发送/接收/录制ROS bag:
   - 消息发送:
     - 机器人位姿
     - 机器人传感器这一帧的RGBD信息
     - 机器人传感器这一帧的深度信息
     - [TODO] 机器人传感器这一帧的语义分割的ground_truth信息
-  - 生成文件，但是没有以ROS消息的形式发送出来
+  - [TODO]生成文件，但是没有以ROS消息的形式发送出来
     - 所有类别物体的检测框(class_bbox.json)
     - 所有类别物体的数量(class_num.json)
   - 消息接收:
     - 接收ROS2的轨迹指令，视角按照轨迹进行移动
-    - [OPTIONAL]接收ROS2的odom指令，直接控制机器人在habitat-sim环境中的位置
+    - 接收ROS2的odom指令，直接控制机器人在habitat-sim环境中的位置
   - 录制ROS bag
     - 录制对应的ROS2 bag用于建图等方面的测试
 
@@ -37,7 +37,7 @@ cd ~/Documents
 git clone --recurse-submodules git@github.com:Tipriest/vln_simulator.git
 cd vln_simulator
 
-# 上面的git clone的部分几乎肯定会因为网络问题有一些包没有办法失败后一次clone下来
+# 如果上面的git clone的部分因为网络问题导致没有clone完全的话
 # 可以运行下面的指令对上面的包进行补充
 
 git submodule update --init --recursive
