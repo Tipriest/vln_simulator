@@ -1,5 +1,7 @@
+# VLN_SIMULATOR
 # README.md
 
+![](./documents/images/image.png)
 ## 一. 项目作用
 用于作为一个简单的室内环境的仿真器平台
 - 加载环境
@@ -64,7 +66,7 @@ bash scripts/install_habitat.sh
 > 在编译 habitat-sim 过程中，如果遇到 OpenGL 错误（如 `Could NOT find OpenGL`）或编译 `zlib_external` 时出错，请安装以下依赖库：
 ```bash
  sudo apt install libgl1-mesa-dev libglu1-mesa-dev freeglut3-dev zlib1g-dev
- sudo apt-get install -y ros-humble-rmw-cyclonedds-cpp 
+ sudo apt-get install -y ros-humble-rmw-cyclonedds-cpp
 ```
 
 ## 📦 数据集设置
