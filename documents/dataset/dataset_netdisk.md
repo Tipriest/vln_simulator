@@ -1,6 +1,6 @@
 # 数据集处理
 
-从这个[网盘链接](https://t3.znas.cn/ZW85DIIJQaf)进行下载，下载后放置在`~`路径下:
+从这个[网盘链接](https://t3.znas.cn/4LaQudyTz3a)进行下载，下载后放置在`~`路径下:
 将压缩文件解压，最终期望的文件路径及结构如下所示:
 ```bash
 cd ~/dataset
